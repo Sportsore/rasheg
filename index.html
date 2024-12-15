@@ -1,57 +1,53 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>طلب خدمات الرشق</title>
+    <title>خدمات الرشق</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            margin: 20px;
-            padding: 0;
+            direction: rtl;
+            text-align: center;
             background-color: #f9f9f9;
+            margin: 0;
+            padding: 20px;
         }
         .container {
-            max-width: 400px;
+            max-width: 500px;
             margin: 0 auto;
             background: #fff;
             padding: 20px;
             border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
         }
         h1 {
-            text-align: center;
             color: #333;
         }
         select, input, button {
             width: 100%;
             padding: 10px;
             margin: 10px 0;
+            font-size: 16px;
+            border: 1px solid #ddd;
             border-radius: 5px;
-            border: 1px solid #ccc;
         }
         button {
-            background-color: #007BFF;
+            background-color: #007bff;
             color: white;
-            font-size: 16px;
+            border: none;
             cursor: pointer;
         }
         button:hover {
             background-color: #0056b3;
         }
-        .message {
-            margin-top: 10px;
-            padding: 10px;
-            border-radius: 5px;
-            text-align: center;
-        }
         .success {
-            background-color: #d4edda;
-            color: #155724;
+            color: green;
+            font-weight: bold;
         }
         .error {
-            background-color: #f8d7da;
-            color: #721c24;
+            color: red;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -59,71 +55,66 @@
     <div class="container">
         <h1>طلب خدمات الرشق</h1>
         <select id="service">
-            <option value="1031">لايكات انستقرام</option>
-            <option value="1032">مشاهدات انستقرام</option>
-            <option value="1033">مشاهدات تلجرام</option>
+            <option value="" disabled selected>اختر الخدمة</option>
+            <option value="1031">مشاهدات انستقرام</option>
+            <option value="1032">لايكات انستقرام</option>
             <option value="1034">تفاعلات تلجرام</option>
+            <option value="1033">مشاهدات تلجرام</option>
         </select>
-        <input type="text" id="link" placeholder="رابط المنشور">
-        <input type="number" id="quantity" placeholder="الكمية" value="50">
-        <button id="submit">تنفيذ الطلب</button>
-        <div id="responseMessage" class="message" style="display: none;"></div>
+        <input type="text" id="url" placeholder="أدخل رابط المنشور">
+        <input type="number" id="quantity" placeholder="الكمية (افتراضي: 100)">
+        <button onclick="placeOrder()">تنفيذ الطلب</button>
+        <p id="responseMessage"></p>
     </div>
 
     <script>
-        document.getElementById('submit').addEventListener('click', async () => {
-            const service = document.getElementById('service').value;
-            const link = document.getElementById('link').value;
-            const quantity = document.getElementById('quantity').value;
-            const responseMessage = document.getElementById('responseMessage');
+        async function placeOrder() {
+            const proxy = "https://cors-anywhere.herokuapp.com/"; // خادم وسيط لتجاوز مشاكل CORS
+            const apiUrl = proxy + "https://smmxpepo.shop/api/v2";
 
-            // التحقق من صحة الإدخال
-            if (!link || !quantity) {
-                responseMessage.textContent = "يرجى ملء جميع الحقول!";
-                responseMessage.className = "message error";
-                responseMessage.style.display = "block";
+            const serviceId = document.getElementById("service").value;
+            const url = document.getElementById("url").value;
+            const quantity = document.getElementById("quantity").value || "100";
+            const responseMessage = document.getElementById("responseMessage");
+
+            if (!serviceId || !url) {
+                responseMessage.textContent = "يرجى إدخال جميع البيانات المطلوبة.";
+                responseMessage.className = "error";
                 return;
             }
 
-            responseMessage.style.display = "none"; // إخفاء الرسالة السابقة
+            const data = {
+                key: "2d9309e1eae3df98355b8a0ebf853983", // مفتاح API الخاص بك
+                action: "add",
+                service: serviceId,
+                link: url,
+                quantity: quantity
+            };
 
             try {
-                const apiKey = "2d9309e1eae3df98355b8a0ebf853983"; // مفتاح الـ API
-                const data = new URLSearchParams({
-                    key: apiKey,
-                    action: "add",
-                    service: service,
-                    link: link,
-                    quantity: quantity
-                });
-
-                const response = await fetch("https://smmxpepo.shop/api/v2", {
+                console.log("Sending data:", data); // لعرض البيانات المرسلة
+                const response = await fetch(apiUrl, {
                     method: "POST",
-                    body: data,
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+                    body: new URLSearchParams(data)
                 });
+                const result = await response.text(); // استجابة الخادم كنص
+                console.log("Response status:", response.status);
+                console.log("Response body:", result);
 
-                const result = await response.json();
-
-                // معالجة الرد بناءً على الحالة
-                if (result.error) {
-                    if (result.error.includes("inactive or not found")) {
-                        responseMessage.textContent = "الخدمة المطلوبة غير مفعّلة أو رقم الخدمة غير صحيح. يرجى التحقق من الإعدادات.";
-                        responseMessage.className = "message error";
-                    } else {
-                        responseMessage.textContent = `حدث خطأ: ${result.error}`;
-                        responseMessage.className = "message error";
-                    }
+                if (response.ok && result.includes("status")) {
+                    responseMessage.textContent = `تم تنفيذ الطلب بنجاح! الرد: ${result}`;
+                    responseMessage.className = "success";
                 } else {
-                    responseMessage.textContent = `تم تنفيذ الطلب بنجاح! معرف الطلب: ${result.order}`;
-                    responseMessage.className = "message success";
+                    responseMessage.textContent = `حدث خطأ أثناء تنفيذ الطلب: ${result}`;
+                    responseMessage.className = "error";
                 }
             } catch (error) {
-                responseMessage.textContent = "حدث خطأ أثناء الاتصال بالخادم. حاول مرة أخرى.";
-                responseMessage.className = "message error";
+                console.error("Error:", error);
+                responseMessage.textContent = "فشل الاتصال بالخادم.";
+                responseMessage.className = "error";
             }
-
-            responseMessage.style.display = "block";
-        });
+        }
     </script>
 </body>
 </html>
